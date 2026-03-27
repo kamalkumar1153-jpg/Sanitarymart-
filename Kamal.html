@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Sanitary Mart Control</title>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.3/firebase-database-compat.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #eef2f7; margin: 0; padding: 20px; display: flex; justify-content: center; }
+        .admin-container { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); width: 100%; max-width: 500px; text-align: center; }
+        h2, h3 { color: #2c3e50; margin-bottom: 20px; }
+        input, select { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 14px; }
+        button { width: 100%; padding: 14px; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; transition: 0.3s; margin-top: 10px; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-banner { background: #856404; color: white; }
+        .btn-delete { background: #e74c3c; color: white; padding: 6px 12px; width: auto; font-size: 12px; }
+        .btn-stock { background: #28a745; color: white; padding: 6px 12px; width: auto; font-size: 12px; }
+        .section { background: #f9f9f9; padding: 15px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #eee; }
+        .item-row { display: flex; justify-content: space-between; align-items: center; padding: 10px; border-bottom: 1px solid #ddd; }
+        #adminContent { display: none; }
+    </style>
+</head>
+<body>
+
+<div class="admin-container">
+    <div id="loginBox">
+        <h2>🔒 Admin Access</h2>
+        <input type="password" id="passInput" placeholder="Enter Password">
+        <button class="btn-primary" onclick="checkPass()">LOGIN</button>
+        <p id="err" style="color:red; font-size:13px;"></p>
+    </div>
+
+    <div id="adminContent">
+        <h2>🛠️ Control Panel</h2>
+
+        <div class="section">
+            <h3>📢 Offer Banner</h3>
+            <input type="text" id="bannerText" placeholder="Example: 30% OFF on All Taps!">
+            <button class="btn-banner" onclick="updateBanner()">UPDATE LIVE BANNER</button>
+        </div>
+
+        <div class="section">
+            <h3>📦 Add New Product</h3>
+            <input type="text" id="pName" placeholder="Product Name">
+            <input type="number" id="pPrice" placeholder="Price (MRP)">
+            <select id="pCategory">
+                <option value="Sanitary">Sanitary (30% OFF)</option>
+                <option value="Taps">Taps & Showers (18% OFF)</option>
+                <option value="Health Faucet">Health Faucet (18% OFF)</option>
+            </select>
+            <input type="file" id="pImage" accept="image/*">
+            <button class="btn-primary" onclick="uploadProduct()">UPLOAD TO SHOWROOM</button>
+            <div id="status" style="margin-top:10px; font-weight:bold; color:green;"></div>
+        </div>
+
+        <div class="section">
+            <h3>📝 Manage Inventory</h3>
+            <div id="inventoryList">Loading items...</div>
+        </div>
+
+        <button onclick="location.reload()" style="background:#666; color:white;">LOGOUT</button>
+    </div>
+</div>
+
+<script>
+    // Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyCuhd6WeneZFqkScgyVv2-8k5_xZz5N5o",
+        databaseURL: "https://sanitarymart-65014-default-rtdb.firebaseio.com/",
+        projectId: "sanitarymart-65014",
+        appId: "1:285578370716:web:c47f43f25ad2ab86b25759"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const database = firebase.database();
+
+    // 1. Password Check
+    function checkPass() {
+        if(document.getElementById('passInput').value === "1234") { // <--- Change password here
+            document.getElementById('loginBox').style.display = "none";
+            document.getElementById('adminContent').style.display = "block";
+            loadInventory();
+        } else {
+            document.getElementById('err').innerText = "Wrong Password!";
+        }
+    }
+
+    // 2. Update Banner
+    function updateBanner() {
+        const text = document.getElementById('bannerText').value;
+        if(text) {
+            database.ref('settings/ticker').set(text).then(() => alert("Banner Updated!"));
+        }
+    }
+
+    // 3. Upload Product
+    function uploadProduct() {
+        const name = document.getElementById('pName').value;
+        const price = document.getElementById('pPrice').value;
+        const category = document.getElementById('pCategory').value;
+        const file = document.getElementById('pImage').files[0];
+        const status = document.getElementById('status');
+
+        if(!name || !price || !file) { alert("Please fill all details!"); return; }
+
+        status.innerText = "Processing...";
+        let disc = (category === "Sanitary") ? 30 : 18;
+        
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = function() {
+            database.ref('products').push().set({
+                productName: name, price: price, discount: disc,
+                category: category, image: reader.result,
+                timestamp: Date.now(), outOfStock: false
+            }, (err) => {
+                if(!err) {
+                    status.innerText = "✅ Upload Successful!";
+                    document.getElementById('pName').value = "";
+                    document.getElementById('pPrice').value = "";
+                }
+            });
+        };
+    }
+
+    // 4. Load & Manage Inventory
+    function loadInventory() {
+        database.ref('products').on('value', (snap) => {
+            const list = document.getElementById('inventoryList');
+            list.innerHTML = "";
+            snap.forEach((child) => {
+                const d = child.val();
+                const stockTxt = d.outOfStock ? "OUT" : "IN";
+                const stockCol = d.outOfStock ? "#ffc107" : "#28a745";
+
+                list.innerHTML += `
+                    <div class="item-row">
+                        <span style="font-size:13px; font-weight:bold;">${d.productName}</span>
+                        <div>
+                            <button class="btn-stock" style="background:${stockCol}" onclick="toggleStock('${child.key}', ${d.outOfStock})">${stockTxt}</button>
+                            <button class="btn-delete" onclick="deleteItem('${child.key}')">DEL</button>
+                        </div>
+                    </div>
+                `;
+            });
+        });
+    }
+
+    function toggleStock(key, current) {
+        database.ref('products').child(key).update({ outOfStock: !current });
+    }
+
+    function deleteItem(key) {
+        if(confirm("Permanently delete this item?")) {
+            database.ref('products').child(key).remove();
+        }
+    }
+</script>
+</body>
+</html>
+
+
