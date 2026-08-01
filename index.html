@@ -26,7 +26,7 @@
         .filter-btn.active { background: #007bff; color: white; }
 
         /* Product Grid */
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 15px; }
+        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; padding: 15px; padding-bottom: 90px; }
         .card { background: white; border-radius: 18px; overflow: hidden; position: relative; padding: 12px; box-shadow: 0 6px 15px rgba(0,0,0,0.05); transition: 0.3s; }
         .card img { width: 100%; height: 160px; object-fit: contain; background: #f9f9f9; border-radius: 12px; }
         
@@ -36,22 +36,33 @@
         .sold-out-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); display: flex; justify-content: center; align-items: center; z-index: 20; border-radius: 18px; }
         .sold-out-text { background: #000; color: #fff; padding: 5px 15px; font-weight: bold; border-radius: 5px; transform: rotate(-15deg); font-size: 14px; }
 
-        /* Product Info */
+        /* Product Info & Action Buttons */
         .name { font-size: 14px; font-weight: bold; margin: 12px 0 5px; color: #333; height: 38px; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
         .rating { color: #f1c40f; font-size: 12px; margin-bottom: 5px; }
-        .price-box { display: flex; align-items: baseline; gap: 5px; }
+        .price-box { display: flex; align-items: baseline; gap: 5px; margin-bottom: 8px; }
         .new-p { color: var(--accent); font-size: 18px; font-weight: bold; }
         .old-p { text-decoration: line-through; color: #999; font-size: 12px; }
+        .add-cart-card-btn { background: #007bff; color: white; border: none; padding: 8px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 13px; }
 
-        /* Popup Modal */
+        /* Popup Modal & Cart */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); overflow-y: auto; }
         .modal-content { background: white; margin: 5% auto; width: 90%; max-width: 450px; border-radius: 25px; padding: 25px; position: relative; text-align: center; }
         .close { position: absolute; right: 20px; top: 15px; font-size: 35px; cursor: pointer; color: #333; }
         
         /* Floating Buttons */
-        .wa-float { position: fixed; bottom: 25px; right: 25px; background: #25d366; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 999; }
+        .wa-float { position: fixed; bottom: 25px; left: 25px; background: #25d366; width: 55px; height: 55px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 999; }
+        .cart-float { position: fixed; bottom: 25px; right: 25px; background: #007bff; color: white; width: 60px; height: 60px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); z-index: 999; cursor: pointer; font-size: 24px; }
+        .cart-count { position: absolute; top: -2px; right: -2px; background: var(--accent); color: white; font-size: 12px; font-weight: bold; padding: 4px 8px; border-radius: 50%; border: 2px solid white; }
+
         .buy-btn { background: #fb641b; color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; margin-bottom: 10px; cursor: pointer; font-size: 16px; }
+        .upi-btn { background: #28a745; color: white; border: none; padding: 14px; width: 100%; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; margin-top: 10px; display: block; text-align: center; text-decoration: none; }
         .wa-btn { background: var(--success); color: white; border: none; padding: 15px; width: 100%; border-radius: 12px; font-weight: bold; text-decoration: none; display: block; font-size: 16px; }
+
+        /* Cart View Details */
+        .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #eee; text-align: left; }
+        .cust-input { width: 100%; padding: 12px; margin: 6px 0; border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box; font-size: 14px; }
+        
+        .qr-box { background: #f8f9fa; border: 1px dashed #007bff; padding: 15px; border-radius: 12px; margin-top: 15px; text-align: center; }
     </style>
 </head>
 <body>
@@ -75,20 +86,64 @@
 
 <div class="grid" id="container"></div>
 
+<!-- WhatsApp Floating Button -->
 <a href="https://wa.me/919024686665" class="wa-float">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="35">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/6/6b/WhatsApp.svg" width="30">
 </a>
 
+<!-- Cart Floating Button -->
+<div class="cart-float" onclick="openCartModal()">
+    🛒 <span class="cart-count" id="cartCount">0</span>
+</div>
+
+<!-- Product Detail Modal -->
 <div id="prodModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
-        <img id="m-img" style="width:100%; border-radius:15px; height:280px; object-fit:contain; background:#f9f9f9;">
-        <h2 id="m-name" style="margin:20px 0 10px; font-size: 22px;"></h2>
+        <span class="close" onclick="closeModal('prodModal')">&times;</span>
+        <img id="m-img" style="width:100%; border-radius:15px; height:250px; object-fit:contain; background:#f9f9f9;">
+        <h2 id="m-name" style="margin:15px 0 5px; font-size: 20px;"></h2>
         <div class="rating">⭐⭐⭐⭐⭐ (Verified Quality)</div>
-        <p id="m-price" style="font-size:26px; color:var(--accent); font-weight:bold; margin: 10px 0 20px;"></p>
+        <p id="m-price" style="font-size:24px; color:var(--accent); font-weight:bold; margin: 10px 0 15px;"></p>
         
-        <button class="buy-btn" onclick="buyNow()">⚡ BUY NOW (ONLINE)</button>
+        <button class="buy-btn" onclick="addSelectedToCart()">🛒 ADD TO CART</button>
         <a id="m-wa" class="wa-btn">💬 ENQUIRE ON WHATSAPP</a>
+    </div>
+</div>
+
+<!-- Cart Modal -->
+<div id="cartModal" class="modal">
+    <div class="modal-content" style="text-align: left;">
+        <span class="close" onclick="closeModal('cartModal')">&times;</span>
+        <h2 style="margin-top:0; color:var(--primary);">🛒 Shopping Cart</h2>
+        
+        <div id="cartList" style="max-height: 180px; overflow-y: auto; margin-bottom: 15px;">
+            Cart is empty.
+        </div>
+
+        <p style="font-size: 18px; font-weight: bold; margin: 15px 0;">Total Amount: ₹<span id="cartTotal">0</span></p>
+
+        <div id="checkoutForm" style="display:none; border-top: 1px solid #eee; padding-top: 15px;">
+            <h4 style="margin: 0 0 10px;">📋 Delivery Address & Contact</h4>
+            <input type="text" id="custName" class="cust-input" placeholder="Full Name">
+            <input type="text" id="custPhone" class="cust-input" placeholder="Mobile Number">
+            <input type="text" id="custAddress" class="cust-input" placeholder="Delivery Address">
+
+            <button class="upi-btn" onclick="generatePaymentOptions()">💳 PROCEED TO PAY VIA UPI</button>
+
+            <!-- Dynamic Payment Area (QR Code & Direct Links) -->
+            <div id="paymentArea" class="qr-box" style="display: none;">
+                <h4 style="margin:0 0 10px; color:#2c3e50;">Scan QR or Click App</h4>
+                <img id="qrCodeImg" src="" style="width: 180px; height: 180px; border-radius: 8px;">
+                
+                <p style="font-size:12px; margin: 8px 0; color:#555;">UPI ID: <strong>9024686665@ybl</strong> 
+                    <button onclick="copyUpi()" style="padding: 2px 6px; font-size: 10px; border-radius: 4px; cursor: pointer;">Copy</button>
+                </p>
+
+                <!-- Mobile App Direct Buttons -->
+                <a id="directUpiBtn" href="#" class="upi-btn" style="background:#007bff; font-size:14px; padding:10px;">📲 Click to Open UPI App</a>
+                <a id="waReceiptBtn" href="#" class="wa-btn" style="font-size:13px; padding:10px; margin-top:8px;">✅ Send Payment Proof on WhatsApp</a>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -102,6 +157,11 @@
     };
     firebase.initializeApp(firebaseConfig);
     const database = firebase.database();
+
+    const STORE_UPI_ID = "9024686665@ybl"; 
+    const STORE_NAME = "Sanitary Mart";
+
+    let cart = [];
 
     // 1. Load Scrolling Banner Text
     database.ref('settings/ticker').on('value', (snap) => {
@@ -117,26 +177,26 @@
             const d = child.val();
             const mrp = parseFloat(d.price) || 0;
             const disc = parseFloat(d.discount) || 0;
-            const final = mrp - (mrp * disc / 100);
+            const final = Math.round(mrp - (mrp * disc / 100));
             const isOut = d.outOfStock === true;
             
-            // New Badge Logic (3 days)
             const threeDays = 3 * 24 * 60 * 60 * 1000;
             const isNew = d.timestamp > (Date.now() - threeDays);
 
             container.innerHTML += `
-                <div class="card" data-cat="${d.category}" data-name="${d.productName.toLowerCase()}" onclick="${!isOut ? `openModal('${d.productName}', '${d.image}', '${final.toFixed(0)}')` : ''}">
+                <div class="card" data-cat="${d.category}" data-name="${d.productName.toLowerCase()}">
                     ${isOut ? '<div class="sold-out-overlay"><span class="sold-out-text">SOLD OUT</span></div>' : ''}
                     ${isNew && !isOut ? '<div class="new-badge">NEW</div>' : ''}
                     ${disc > 0 && !isOut ? `<div class="badge">${disc}% OFF</div>` : ''}
                     
-                    <img src="${d.image}" style="${isOut ? 'filter: grayscale(1);' : ''}">
-                    <div class="name">${d.productName}</div>
+                    <img src="${d.image}" onclick="${!isOut ? `openModal('${d.productName}', '${d.image}', '${final}')` : ''}" style="${isOut ? 'filter: grayscale(1);' : ''}; cursor:pointer;">
+                    <div class="name" onclick="${!isOut ? `openModal('${d.productName}', '${d.image}', '${final}')` : ''}" style="cursor:pointer;">${d.productName}</div>
                     <div class="rating">⭐⭐⭐⭐⭐</div>
                     <div class="price-box">
                         ${disc > 0 ? `<span class="old-p">₹${mrp}</span>` : ''}
-                        <span class="new-p">₹${final.toFixed(0)}</span>
+                        <span class="new-p">₹${final}</span>
                     </div>
+                    ${!isOut ? `<button class="add-cart-card-btn" onclick="addToCart('${d.productName}', ${final})">Add to Cart</button>` : ''}
                 </div>
             `;
         });
@@ -158,7 +218,109 @@
         });
     }
 
-    // 4. Modal Controls
+    // 4. Cart Logic
+    function addToCart(name, price) {
+        cart.push({ name: name, price: price });
+        updateCartUI();
+        alert(`✅ "${name}" कार्ट में जोड़ दिया गया है!`);
+    }
+
+    function addSelectedToCart() {
+        if(selected.name) {
+            addToCart(selected.name, parseInt(selected.price));
+            closeModal('prodModal');
+        }
+    }
+
+    function removeFromCart(index) {
+        cart.splice(index, 1);
+        updateCartUI();
+    }
+
+    function updateCartUI() {
+        document.getElementById('cartCount').innerText = cart.length;
+        const cartList = document.getElementById('cartList');
+        const cartTotal = document.getElementById('cartTotal');
+        const checkoutForm = document.getElementById('checkoutForm');
+
+        if(cart.length === 0) {
+            cartList.innerHTML = "<p style='color:#777;'>आपकी कार्ट खाली है।</p>";
+            cartTotal.innerText = "0";
+            checkoutForm.style.display = "none";
+            document.getElementById('paymentArea').style.display = "none";
+            return;
+        }
+
+        let html = "";
+        let total = 0;
+        cart.forEach((item, idx) => {
+            total += item.price;
+            html += `
+                <div class="cart-item">
+                    <div>
+                        <strong>${item.name}</strong><br>
+                        <span style="color:var(--accent);">₹${item.price}</span>
+                    </div>
+                    <button onclick="removeFromCart(${idx})" style="background:#e74c3c; color:white; border:none; padding:4px 8px; border-radius:5px; cursor:pointer; font-size:12px;">Remove</button>
+                </div>
+            `;
+        });
+
+        cartList.innerHTML = html;
+        cartTotal.innerText = total;
+        checkoutForm.style.display = "block";
+    }
+
+    // 5. Generate QR & Universal Payment Links
+    function generatePaymentOptions() {
+        const name = document.getElementById('custName').value.trim();
+        const phone = document.getElementById('custPhone').value.trim();
+        const address = document.getElementById('custAddress').value.trim();
+
+        if(!name || !phone || !address) {
+            alert("कृपया नाम, मोबाइल नंबर और पता पूरा भरें!");
+            return;
+        }
+
+        let total = 0;
+        cart.forEach(i => total += i.price);
+
+        // Save order in Firebase
+        const orderRef = database.ref('orders').push();
+        orderRef.set({
+            customerName: name,
+            phone: phone,
+            address: address,
+            items: cart,
+            totalAmount: total,
+            status: "PENDING_UPI_PAYMENT",
+            timestamp: Date.now()
+        }).then(() => {
+            // Raw UPI URL
+            const rawUpi = `upi://pay?pa=${STORE_UPI_ID}&pn=${encodeURIComponent(STORE_NAME)}&am=${total}&cu=INR&tn=${encodeURIComponent('Order-' + orderRef.key.substr(-5))}`;
+
+            // Dynamic QR Code Generation using QuickChart API
+            const qrApiUrl = `https://quickchart.io/qr?text=${encodeURIComponent(rawUpi)}&size=200`;
+            document.getElementById('qrCodeImg').src = qrApiUrl;
+
+            // Direct App Button
+            document.getElementById('directUpiBtn').href = rawUpi;
+
+            // WhatsApp Message for confirmation
+            const waMsg = `Hello! I have placed an order.%0A*Name:* ${name}%0A*Total Amount:* ₹${total}%0A*Order ID:* ${orderRef.key.substr(-5)}`;
+            document.getElementById('waReceiptBtn').href = `https://wa.me/919024686665?text=${waMsg}`;
+
+            // Show Payment Section
+            document.getElementById('paymentArea').style.display = "block";
+        });
+    }
+
+    function copyUpi() {
+        navigator.clipboard.writeText("9024686665@ybl");
+        alert("UPI ID कॉपी हो गई है: 9024686665@ybl");
+    }
+
+    // 6. Modal Controls
     let selected = {};
     function openModal(name, img, price) {
         selected = { name, price };
@@ -169,14 +331,17 @@
         document.getElementById('m-wa').href = "https://wa.me/919024686665?text=Enquiry: " + name;
     }
 
-    function closeModal() { document.getElementById('prodModal').style.display = "none"; }
+    function openCartModal() {
+        updateCartUI();
+        document.getElementById('cartModal').style.display = "block";
+    }
 
-    function buyNow() {
-        const msg = `ORDER CONFIRMED!%0AProduct: ${selected.name}%0APrice: ₹${selected.price}%0APlease send payment details.`;
-        window.location.href = "https://wa.me/919024686665?text=" + msg;
+    function closeModal(id) { 
+        document.getElementById(id).style.display = "none"; 
     }
 </script>
 </body>
 </html>
+
 
 
